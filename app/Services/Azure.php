@@ -101,6 +101,10 @@ class Azure implements TaskService
     public function mapStatusToBranchType($status): string
     {
         switch (strtolower($status)) {
+            case "hotfix":
+            case "hot":
+            case "hot fix":
+                return 'hotfix';
             case "bug":
             case "issue":
                 return 'bugfix';

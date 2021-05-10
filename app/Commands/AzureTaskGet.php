@@ -15,6 +15,8 @@ class AzureTaskGet extends Command
      * @var string
      */
     protected $signature = 'azure:task {task_id :  task_id to fetch from azure boards without the key only the number like 1234}
+                                        {--f|from= : Which branch to generate from}
+                                        {--g|guess : branch from develop or master depending if the task is hotfix or not}
                                         {--d|dump : only output the task details}
                                         {--b|dumpBranchName : only output the task branch name}
     ';
@@ -24,7 +26,7 @@ class AzureTaskGet extends Command
      *
      * @var string
      */
-    protected $description = 'Generate a token from azure';
+    protected $description = 'Read task details from azure and generate the branch name from those details.';
 
     /**
      * Execute the console command.
@@ -37,6 +39,7 @@ class AzureTaskGet extends Command
     {
         $task    = null;
         $task_id = $this->argument('task_id');
+        $guess   = $this->option('guess');
 
         $this->task(
             'Getting task from azure',
@@ -45,22 +48,42 @@ class AzureTaskGet extends Command
             }
         );
 
-        if($this->option('dump')){
+        if ($this->option('dump')) {
             $this->info(print_r($task->toArray(), true));
             return 0;
         }
 
+        $from       = $this->option('from');
         $branchName = '';
-        $this->task('Creating the branch name', function() use ($gitStuff, $task, $azure, &$branchName) {
-            $branchName = $gitStuff->branchNameTemplate($task->title, $task->id, $azure->mapStatusToBranchType($task->workType));
-        });
+        $this->task(
+            'Creating the branch name',
+            function () use ($gitStuff, $task, $azure, &$branchName, &$from, $guess) {
+                $branchName = $gitStuff->branchNameTemplate(
+                    $task->title,
+                    $task->id,
+                    $branchType = $azure->mapStatusToBranchType($task->workType)
+                );
+                if ($guess) {
+                    if ($branchType == 'hotfix') {
+                        $from = 'main';
+                    } else {
+                        $from = 'develop';
+                    }
+                }
+            }
+        );
 
-        if($this->option('dumpBranchName')){
+        if ($this->option('dumpBranchName')) {
             $this->info('');
             $this->info('The branch name would be "' . $branchName . '"');
             $this->info("git checkout '$branchName' 2> /dev/null || git checkout -b '$branchName");
             $this->info('');
             return 0;
+        }
+
+        if ($from) {
+            $this->info(sprintf('Generating the new branch "%s" from "%s"', $branchName, $from));
+            $gitStuff->checkout($from);
         }
 
         $gitStuff->checkout($branchName);
@@ -71,7 +94,7 @@ class AzureTaskGet extends Command
     /**
      * Define the command's schedule.
      *
-     * @param \Illuminate\Console\Scheduling\Schedule $schedule
+     * @param Schedule $schedule
      * @return void
      */
     public function schedule(Schedule $schedule): void
