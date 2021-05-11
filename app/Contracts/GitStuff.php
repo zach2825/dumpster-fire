@@ -6,7 +6,9 @@ namespace App\Contracts;
 use App\Models\Tasks;
 use Github\Api\PullRequest;
 use GrahamCampbell\GitHub\Facades\GitHub;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Throwable;
 
 class GitStuff
 {
@@ -42,6 +44,29 @@ class GitStuff
 
         $this->branchPrefix = config('branching.branch_prefix');
         $this->task_key     = $task_key;
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function pullTaskID()
+    {
+        exec('git branch', $lines);
+
+        $branch = '';
+        foreach ($lines as $line) {
+            if (str_starts_with($line, '*')) {
+                $branch = ltrim($line, '* ');
+                break;
+            }
+        }
+
+        preg_match_all('/AB#([^\/]+)/', $branch, $matches);
+        $task_id = Arr::get($matches, '1.0');
+
+        throw_if(!$task_id, 'cannot-get-task-id');
+
+        return $task_id;
     }
 
     public function makePR($branch_to, $description, $in_progress = false)
@@ -144,5 +169,33 @@ class GitStuff
             preg_replace('/-$/', '', Str::limit(Str::slug($subject), 22, '')),
             config('git.branch_append', '')
         );
+    }
+
+    public function gitRun($command)
+    {
+        $lines = null;
+
+        exec($command, $lines);
+
+        return $lines;
+    }
+
+    public function getConfig($key = null, $default = null)
+    {
+        $response = $this->gitRun(sprintf('git config taskr.%s', Str::slug($key)));
+        return Arr::get($response, '0', $default);
+    }
+
+    public function setConfig($key, $value = null)
+    {
+        if (is_array($key)) {
+            foreach ($key as $key => $value) {
+                /// nothing to do
+            }
+        }
+
+        $this->gitRun(sprintf('git config taskr.%s "%s"', Str::slug($key), $value));
+
+        return $this;
     }
 }

@@ -14,11 +14,14 @@ class AzureTaskGet extends Command
      *
      * @var string
      */
-    protected $signature = 'azure:task {task_id :  task_id to fetch from azure boards without the key only the number like 1234}
+    protected $signature = 'azure:task {task_id? :  task_id to fetch from azure boards without the key only the number like 1234}
+                                        {--a|assignMe : Reads .env DF_EMAIL and assigns that email to the task if nobody is assigned}
                                         {--f|from= : Which branch to generate from}
                                         {--g|guess : branch from develop or master depending if the task is hotfix or not}
                                         {--d|dump : only output the task details}
                                         {--b|dumpBranchName : only output the task branch name}
+                                        {--discovery : move the task to discovery }
+                                        {--development}
     ';
 
     /**
@@ -38,7 +41,7 @@ class AzureTaskGet extends Command
     public function handle(Azure $azure, GitStuff $gitStuff): bool
     {
         $task    = null;
-        $task_id = $this->argument('task_id');
+        $task_id = $this->argument('task_id') ?? $gitStuff->pullTaskID();
         $guess   = $this->option('guess');
 
         $this->task(
@@ -73,6 +76,19 @@ class AzureTaskGet extends Command
             }
         );
 
+        if ($this->option('dump')) {
+            dd($task->toArray());
+        }
+
+        if (!$task->assignedToName && $this->option('assignMe')) {
+            $this->task(
+                sprintf('Assigning me to the task # "%s".', $task_id),
+                function () use ($azure, $task_id) {
+                    $azure->assignMe($task_id);
+                }
+            );
+        }
+
         if ($this->option('dumpBranchName')) {
             $this->info('');
             $this->info('The branch name would be "' . $branchName . '"');
@@ -87,6 +103,21 @@ class AzureTaskGet extends Command
         }
 
         $gitStuff->checkout($branchName);
+
+        if ($this->option('discovery') || $this->option('development')) {
+            $this->call(
+                'azure:transition',
+                [
+                    'boardColumnName' => $task->transitionColumnName,
+                    '--id'            => $task->id,
+                    '--discovery'     => $this->option('discovery'),
+                    '--development'   => $this->option('development'),
+                ]
+            );
+        }
+
+        $this->info('Task Url:');
+        $this->info($task->url);
 
         return false;
     }

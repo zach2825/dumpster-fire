@@ -13,9 +13,9 @@ use Illuminate\Database\Eloquent\Model;
  * @property string workitemtype
  * @property string state
  * @property string reason
- * @property array createdby
+ * @property array  createdby
  * @property Carbon createddate
- * @property array changedby
+ * @property array  changedby
  * @property Carbon changeddate
  * @property string commentcount
  * @property string title
@@ -24,14 +24,32 @@ use Illuminate\Database\Eloquent\Model;
  * @property string boardlane
  * @property string description
  * @property string creatorName
+ * @property string assignedToName
+ * @property string url
+ * @property string transitionColumnName
  */
 class AzureTask extends Model
 {
-    protected $guarded = [];
 
-    protected $dates = ['createddate', 'changeddate'];
+    protected $fillable = [
+        'url',
+        'assignedTo',
+        'creatorName',
+        'itemType',
+        'itemStatus',
+        'task_id',
+        'title',
+        'transitionColumnName',
+        'originalJson',
+    ];
+
+    protected $dates = ['createdDate', 'changedDate'];
 
     protected $appends = ['creatorName', 'assignedToName', 'workType'];
+
+    protected $casts = [
+        'originalJson' => 'json',
+    ];
 
     public function getCreatorNameAttribute()
     {
@@ -47,4 +65,9 @@ class AzureTask extends Model
     {
         return $this->workitemtype;
     }
+
+//    public function getUrlAttribute()
+//    {
+//        return sprintf('https://dev.azure.com/%s/%s/_workitems/edit/%s', config('df.organization'), config('df.project'), $this->id);
+//    }
 }

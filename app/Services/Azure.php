@@ -8,7 +8,7 @@ use App\Models\AzureTask;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
-use phpDocumentor\Reflection\Types\Boolean;
+use Illuminate\Support\Str;
 
 class Azure implements TaskService
 {
@@ -16,6 +16,7 @@ class Azure implements TaskService
     private string $baseUrl;
     private string $api_version;
     private string $username;
+    private string $email;
 
     /**
      * Azure constructor.
@@ -33,6 +34,7 @@ class Azure implements TaskService
         string $api_version = '5.0'
     ) {
         $this->username = $username ?? config('df.username');
+        $this->email    = config('df.email');
         $this->token    = $token ?? config('df.personal_access_token');
 
         $this->baseUrl     = "https://dev.azure.com/{$organization}/_apis";
@@ -54,29 +56,79 @@ class Azure implements TaskService
 
         // fields
         foreach ($task['fields'] as $key => $field) {
-            $key = strtolower($key);
-            if (str_starts_with($key, 'system')) {
-                Arr::set($collection, $key, $field);
+            $lowerKey = strtolower($key);
+            if (str_starts_with($lowerKey, 'system')) {
+                Arr::set($collection, $lowerKey, $field);
+            }
+
+            if (Str::endsWith($key, '_Kanban.Column')) {
+                $collection['system']['transitionColumnName'] = $key;
             }
         }
 
-        return new AzureTask($collection['system'] ?? []);
+        $collection['system']['originalJson'] = $task;
+        $collection['system']['url']          = $task['url'];
+
+        $status = $this->mapStatusToBranchType($collection['system']['workitemtype']);
+
+        $collection = [
+            'task_id'              => $collection['system']['id'],
+            'url'                  => $collection['system']['url'],
+            'assignedTo'           => Arr::get($collection, 'system.assignedto.displayName'),
+            'creatorName'          => Arr::get($collection, 'system.createdby.displayName'),
+            'itemType'             => $collection['system']['workitemtype'],
+            'itemStatus'           => $status,
+            'title'                => $collection['system']['title'],
+            'transitionColumnName' => $collection['system']['transitionColumnName'],
+            'originalJson'         => $collection['system']['originalJson'],
+        ];
+
+        return AzureTask::updateOrCreate(['task_id' => $collection['task_id']], $collection);
     }
 
-    /**
-     * @throws RequestException
-     */
-    public function get($path): array
+    public function formatRequest($path)
     {
         $username = $this->username;
         $password = $this->token;
         $basic    = base64_encode("{$username}:{$password}");
         $url      = $this->getUrl($path);
 
-        $response = Http::withToken($basic, 'basic')->acceptJson()->get($url);
+        return [$url, $basic];
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function get($path, $query = []): array
+    {
+        [$url, $basic] = $this->formatRequest($path);
+
+        $response = Http::withToken($basic, 'basic')->acceptJson()->get($url, $query);
         $response->throw(); // if error stop here
 
         return $response->json() ?? [];
+    }
+
+    public function update($path, $data)
+    {
+        [$url, $basic] = $this->formatRequest($path);
+        $response = Http::withToken($basic, 'basic')
+            ->contentType('application/json-patch+json')
+            ->patch($url, $data);
+
+//        $test = $response->body();
+
+        return $response->json() ?? [];
+    }
+
+    public function transition($task_id, $columnName, $status_name)
+    {
+        return $this->taskUpdate($task_id, ['/fields/' . $columnName => $status_name], 'add');
+    }
+
+    public function assignMe($task_id)
+    {
+        return $this->taskUpdate($task_id, ['/fields/System.AssignedTo' => $this->email]);
     }
 
     /**
@@ -84,7 +136,7 @@ class Azure implements TaskService
      */
     public function taskGet($id): array|AzureTask
     {
-        return $this->formatTask($this->get("wit/workItems/{$id}") + compact('id'));
+        return $this->formatTask($this->get("wit/workitems/{$id}", ['expand' => 'all']) + compact('id'));
     }
 
     /**
@@ -93,9 +145,21 @@ class Azure implements TaskService
      * @param $columns
      * @return bool
      */
-    public function taskUpdate($id, $columns): Boolean
+    public function taskUpdate($id, $columns, $op = 'replace'): mixed
     {
-        return false;
+        $updates = [];
+
+        foreach ($columns as $key => $value) {
+            $updates[] = [
+                'op'    => $op,
+                'path'  => $key,
+                'value' => $value,
+            ];
+        }
+
+        $response = $this->update("wit/workitems/{$id}", $updates);
+
+        return $response;
     }
 
     public function mapStatusToBranchType($status): string
