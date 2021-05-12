@@ -11,5 +11,6 @@ return [
     'transition' => [
         'discovery'   => env('DF_DISCOVERY', 'Discovery'),
         'development' => env('DF_DEVELOPMENT', 'Development'),
+        'review'      => env('DF_REVIEW', 'Code Review'),
     ],
 ];

@@ -63,7 +63,7 @@ class AzureTaskGet extends Command
             function () use ($gitStuff, $task, $azure, &$branchName, &$from, $guess) {
                 $branchName = $gitStuff->branchNameTemplate(
                     $task->title,
-                    $task->id,
+                    $task->task_id,
                     $branchType = $azure->mapStatusToBranchType($task->workType)
                 );
                 if ($guess) {

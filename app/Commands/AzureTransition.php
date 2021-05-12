@@ -2,6 +2,7 @@
 
 namespace App\Commands;
 
+use App\Contracts\GitStuff;
 use App\Models\AzureTask;
 use App\Services\Azure;
 use Illuminate\Console\Scheduling\Schedule;
@@ -15,12 +16,12 @@ class AzureTransition extends Command
      * @var string
      */
     protected $signature = 'azure:transition
-                                {boardColumnName : column from the task where the name has something like "_Kanban.Column" in it}
+                                {boardColumnName? : column from the task where the name has something like "_Kanban.Column" in it}
                                 {--id= : number of the task. If not provided try to pull it from the branch name}
                                 {--task-id= : number of the task. If not provided try to pull it from the branch name}
                                 {--discovery}
                                 {--development}
-                                {--code-review}
+                                {--review}
                                 {--dev-complete}
      ';
 
@@ -36,13 +37,29 @@ class AzureTransition extends Command
      *
      * @return mixed
      */
-    public function handle(Azure $azure)
+    public function handle(Azure $azure, GitStuff $gitStuff)
     {
-        $task_id = $this->option('task-id');
+        $task_id         = $this->option('task-id');
+        $boardColumnName = $this->argument('boardColumnName');
+        $task            = null;
 
         if (($id = $this->option('id')) !== null) {
             $task    = AzureTask::findOrFail($id);
             $task_id = $task->task_id;
+        }
+
+        if (!$task_id) {
+            $task_id = $gitStuff->pullTaskID();
+        }
+
+        throw_if(!$task_id, 'missing-task_id');
+
+        if (!$boardColumnName) {
+            if (!$task) {
+                $task = AzureTask::where('task_id', $task_id)->firstOrFail();
+            }
+
+            $boardColumnName = $task->transitionColumnName;
         }
 
         //column name = WEF_EA0EE6A310354DF1B7016083EBF959DF_Kanban.Column
@@ -55,10 +72,13 @@ class AzureTransition extends Command
         if ($this->option('development')) {
             $statusName = config('df.transition.development');
         }
+        if ($this->option('review')) {
+            $statusName = config('df.transition.review');
+        }
 
         throw_if(!$statusName, 'missing-status-name');
 
-        $azure->transition($task_id, $this->argument('boardColumnName'), $statusName);
+        $azure->transition($task_id, $boardColumnName, $statusName);
 
         return 0;
     }
