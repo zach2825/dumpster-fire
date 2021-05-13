@@ -27,6 +27,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property string assignedToName
  * @property string url
  * @property string transitionColumnName
+ * @property string boardColumn
+ * @property string task_id
  */
 class AzureTask extends Model
 {
@@ -59,6 +61,11 @@ class AzureTask extends Model
     public function getAssignedToNameAttribute()
     {
         return $this->assignedto['displayName'] ?? '';
+    }
+
+    public function getBoardColumnAttribute()
+    {
+        return $this->originalJson['fields']['System.BoardColumn'] ?? 'n/a';
     }
 
     public function getWorkTypeAttribute()
