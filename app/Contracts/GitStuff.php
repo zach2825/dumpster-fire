@@ -30,6 +30,8 @@ class GitStuff
      */
     private $task_key;
 
+    public $lastOutput = '';
+
     /**
      * GitStuff constructor.
      * @param PullTaskNumber $taskNumber
@@ -116,8 +118,9 @@ class GitStuff
         $output = null;
 
         exec("git checkout '$branch' 2> /dev/null || git checkout -b '$branch' 2> /dev/null", $output);
+        $this->lastOutput = $output;
 
-        return $output;
+        return $this;
     }
 
     public function pull($remote, $branch)
