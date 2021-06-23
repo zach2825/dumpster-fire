@@ -100,6 +100,7 @@ class AzureTaskGet extends Command
         if ($from) {
             $this->info(sprintf('Generating the new branch "%s" from "%s"', $branchName, $from));
             $gitStuff->checkout($from);
+            $gitStuff->pull('origin', $from);
         }
 
         $gitStuff->checkout($branchName);
