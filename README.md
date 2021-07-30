@@ -1,8 +1,10 @@
 # Dumpster fire cli interactive
 
-## Links
-* https://github.com/TheNetworg/oauth2-azure
+[![wakatime](https://wakatime.com/badge/github/zach2825/dumpster-fire.svg)](https://wakatime.com/badge/github/zach2825/dumpster-fire)
 
+## Links
+
+* https://github.com/TheNetworg/oauth2-azure
 
 <p align="center">
     <img title="Laravel Zero" height="100" src="https://raw.githubusercontent.com/laravel-zero/docs/master/images/logo/laravel-zero-readme.png" />
