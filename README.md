@@ -1,5 +1,6 @@
 # Dumpster fire cli interactive
 
+
 [![wakatime](https://wakatime.com/badge/github/zach2825/dumpster-fire.svg)](https://wakatime.com/badge/github/zach2825/dumpster-fire)
 
 ## Links
