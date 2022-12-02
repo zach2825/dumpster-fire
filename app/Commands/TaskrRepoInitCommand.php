@@ -29,7 +29,6 @@ class TaskrRepoInitCommand extends Command
      */
     public function handle(GitStuff $gitStuff)
     {
-//        $this->notify("Hello Web Artisan", "Love beautiful..", "icon.png");
         $availableSettings = [
             'service',
             'token_type',
