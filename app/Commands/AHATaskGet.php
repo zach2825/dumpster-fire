@@ -52,6 +52,7 @@ class AHATaskGet extends Command
 
         if ($this->option('dump')) {
             $this->info(print_r($task->toArray(), true));
+
             return 0;
         }
 
@@ -82,6 +83,7 @@ class AHATaskGet extends Command
             $this->info('The branch name would be "' . $branchName . '"');
             $this->info("git checkout '$branchName' 2> /dev/null || git checkout -b '$branchName");
             $this->info('');
+
             return 0;
         }
 

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Class AHATask
- * @package App\Models
+ *
  * @property string id
  * @property string name
  * @property string reference_num
@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string product_id
  * @property string progress
  * @property string progress_source
- * @property array workflow_kind
+ * @property array  workflow_kind
  * @property string workflow_status
  * @property string description
  * @property string attachments

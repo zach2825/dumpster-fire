@@ -28,7 +28,7 @@ class InspiringCommand extends Command
      */
     public function handle()
     {
-        $this->info(print_r($this->arguments(),true));
+        $this->info(print_r($this->arguments(), true));
 
         $this->info('Simplicity is the ultimate sophistication.');
     }
@@ -36,7 +36,7 @@ class InspiringCommand extends Command
     /**
      * Define the command's schedule.
      *
-     * @param  \Illuminate\Console\Scheduling\Schedule $schedule
+     * @param Schedule $schedule
      * @return void
      */
     public function schedule(Schedule $schedule)

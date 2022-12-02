@@ -1,40 +1,62 @@
 <?php
 
-namespace App\Services;
+/** @noinspection PhpPropertyOnlyWrittenInspection */
 
+namespace App\Services;
 
 use App\Contracts\TaskService;
 use App\Models\AHATask;
-use App\Models\AzureTask;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
-use phpDocumentor\Reflection\Types\Boolean;
 
 class AHA implements TaskService
 {
-    private string $token;
     private string $baseUrl;
-    private string $api_version;
-    private string $username;
-    private $company;
-    private $task_key;
 
     /**
-     * AHA constructor.
-     * @param        $token
-     * @param        $company
-     * @param        $task_key
+     * @param string $token
+     * @param string $company
+     * @param string $username
+     * @param string $task_key
+     * @param string $api_version
      */
     public function __construct(
-        $token,
-        $company,
-        $task_key,
+        public string $token,
+        private string $company,
+        private string $username,
+        private string $task_key,
+        private string $api_version = 'v1',
     ) {
-        $this->baseUrl     = "https://{$company}.aha.io/api";
-        $this->api_version = 'v1';
-        $this->token       = $token;
-        $this->task_key    = $task_key;
+        $this->baseUrl = "https://{$company}.aha.io/api";
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function taskGet($id, $withFormat = true): AHATask|array
+    {
+        $task = $this->get("features/{$this->task_key}{$id}") + compact('id');
+
+        if ($withFormat) {
+            return $this->formatTask($task);
+        }
+
+        return $task;
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function get($path): array
+    {
+        $token = $this->token;
+        $url   = $this->getUrl($path);
+
+        $response = Http::withToken($token)->acceptJson()->get($url);
+        $response->throw(); // if error stop here
+
+        return $response->json() ?? [];
     }
 
     public function getUrl($path = '/'): string
@@ -42,7 +64,7 @@ class AHA implements TaskService
         return $this->baseUrl . "/{$this->api_version}/$path";
     }
 
-    public function formatTask($task = []): AHATask
+    public function formatTask($task = []): AHATask|array
     {
         if (!$task) {
             return [];
@@ -60,57 +82,22 @@ class AHA implements TaskService
     }
 
     /**
-     * @throws RequestException
-     */
-    public function get($path): array
-    {
-        $token = $this->token;
-        $url      = $this->getUrl($path);
-
-        $response = Http::withToken($token)->acceptJson()->get($url);
-        $response->throw(); // if error stop here
-
-        return $response->json() ?? [];
-    }
-
-    /**
-     * @throws RequestException
-     */
-    public function taskGet($id, $withFormat = true): mixed
-    {
-        $task = $this->get("features/{$this->task_key}{$id}") + compact('id');
-
-        if ($withFormat) {
-            return $this->formatTask($task);
-        }
-
-        return $task;
-    }
-
-    /**
      * Update the task on the board
+     *
      * @param $id
      * @param $columns
      * @return bool
      */
-    public function taskUpdate($id, $columns): Boolean
+    public function taskUpdate($id, $columns): bool
     {
         return false;
     }
 
     public function mapStatusToBranchType($status): string
     {
-        switch (strtolower($status)) {
-            case "Bug fix":
-            case "bug":
-            case "issue":
-                return 'bugfix';
-            case "new":
-            case "tech debt":
-            case "user story":
-            case "feature":
-            default:
-                return 'feature';
-        }
+        return match (strtolower($status)) {
+            'Bug fix', 'bug', 'issue' => 'bugfix',
+            default => 'feature',
+        };
     }
 }

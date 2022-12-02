@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Contracts;
 
 use App\Models\Tasks;
@@ -16,11 +15,14 @@ class GitStuff
      * @var string
      */
     public $organization;
+
     /**
      * @var string
      */
     public $repo;
+
     public $branchPrefix = null;
+    public $lastOutput = '';
     /**
      * @var PullTaskNumber
      */
@@ -30,10 +32,9 @@ class GitStuff
      */
     private $task_key;
 
-    public $lastOutput = '';
-
     /**
      * GitStuff constructor.
+     *
      * @param PullTaskNumber $taskNumber
      * @param string         $task_key
      */
@@ -174,6 +175,13 @@ class GitStuff
         );
     }
 
+    public function getConfig($key = null, $default = null)
+    {
+        $response = $this->gitRun(sprintf('git config taskr.%s', Str::slug($key)));
+
+        return Arr::get($response, '0', $default);
+    }
+
     public function gitRun($command)
     {
         $lines = null;
@@ -181,12 +189,6 @@ class GitStuff
         exec($command, $lines);
 
         return $lines;
-    }
-
-    public function getConfig($key = null, $default = null)
-    {
-        $response = $this->gitRun(sprintf('git config taskr.%s', Str::slug($key)));
-        return Arr::get($response, '0', $default);
     }
 
     public function setConfig($key, $value = null)

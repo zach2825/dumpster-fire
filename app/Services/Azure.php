@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-
 use App\Contracts\TaskService;
 use App\Models\AzureTask;
 use Illuminate\Http\Client\RequestException;
@@ -13,13 +12,18 @@ use Illuminate\Support\Str;
 class Azure implements TaskService
 {
     private string $token;
+
     private string $baseUrl;
+
     private string $api_version;
+
     private string $username;
+
     private string $email;
 
     /**
      * Azure constructor.
+     *
      * @param        $organization
      * @param        $username
      * @param        $token
@@ -41,9 +45,73 @@ class Azure implements TaskService
         $this->api_version = $api_version;
     }
 
+    public function transition($task_id, $columnName, $status_name)
+    {
+        return $this->taskUpdate($task_id, ['/fields/' . $columnName => $status_name], 'add');
+    }
+
+    /**
+     * Update the task on the board
+     *
+     * @param $id
+     * @param $columns
+     * @return bool
+     */
+    public function taskUpdate($id, $columns, $op = 'replace'): mixed
+    {
+        $updates = [];
+
+        foreach ($columns as $key => $value) {
+            $updates[] = [
+                'op'    => $op,
+                'path'  => $key,
+                'value' => $value,
+            ];
+        }
+
+        $response = $this->update("wit/workitems/{$id}", $updates);
+
+        return $response;
+    }
+
+    public function update($path, $data)
+    {
+        [$url, $basic] = $this->formatRequest($path);
+        $response = Http::withToken($basic, 'basic')
+            ->contentType('application/json-patch+json')
+            ->patch($url, $data);
+
+//        $test = $response->body();
+
+        return $response->json() ?? [];
+    }
+
+    public function formatRequest($path)
+    {
+        $username = $this->username;
+        $password = $this->token;
+        $basic    = base64_encode("{$username}:{$password}");
+        $url      = $this->getUrl($path);
+
+        return [$url, $basic];
+    }
+
     public function getUrl($path = '/'): string
     {
         return $this->baseUrl . '/' . $path . "?api-version={$this->api_version}";
+    }
+
+    public function assignMe($task_id)
+    {
+        return $this->taskUpdate($task_id, ['/fields/System.AssignedTo' => $this->email]);
+    }
+
+    /**
+     * @throws RequestException
+     */
+    public function taskGet($id): array|AzureTask
+    {
+        return $this->formatTask($this->get("wit/workitems/{$id}", ['expand' => 'all']) + compact('id'));
     }
 
     public function formatTask($task = []): array|AzureTask
@@ -86,14 +154,22 @@ class Azure implements TaskService
         return AzureTask::updateOrCreate(['task_id' => $collection['task_id']], $collection);
     }
 
-    public function formatRequest($path)
+    public function mapStatusToBranchType($status): string
     {
-        $username = $this->username;
-        $password = $this->token;
-        $basic    = base64_encode("{$username}:{$password}");
-        $url      = $this->getUrl($path);
-
-        return [$url, $basic];
+        switch (strtolower($status)) {
+            case 'hotfix':
+            case 'hot':
+            case 'hot fix':
+                return 'hotfix';
+            case 'bug':
+            case 'issue':
+                return 'bugfix';
+            case 'tech debt':
+            case 'user story':
+            case 'feature':
+            default:
+                return 'feature';
+        }
     }
 
     /**
@@ -107,76 +183,5 @@ class Azure implements TaskService
         $response->throw(); // if error stop here
 
         return $response->json() ?? [];
-    }
-
-    public function update($path, $data)
-    {
-        [$url, $basic] = $this->formatRequest($path);
-        $response = Http::withToken($basic, 'basic')
-            ->contentType('application/json-patch+json')
-            ->patch($url, $data);
-
-//        $test = $response->body();
-
-        return $response->json() ?? [];
-    }
-
-    public function transition($task_id, $columnName, $status_name)
-    {
-        return $this->taskUpdate($task_id, ['/fields/' . $columnName => $status_name], 'add');
-    }
-
-    public function assignMe($task_id)
-    {
-        return $this->taskUpdate($task_id, ['/fields/System.AssignedTo' => $this->email]);
-    }
-
-    /**
-     * @throws RequestException
-     */
-    public function taskGet($id): array|AzureTask
-    {
-        return $this->formatTask($this->get("wit/workitems/{$id}", ['expand' => 'all']) + compact('id'));
-    }
-
-    /**
-     * Update the task on the board
-     * @param $id
-     * @param $columns
-     * @return bool
-     */
-    public function taskUpdate($id, $columns, $op = 'replace'): mixed
-    {
-        $updates = [];
-
-        foreach ($columns as $key => $value) {
-            $updates[] = [
-                'op'    => $op,
-                'path'  => $key,
-                'value' => $value,
-            ];
-        }
-
-        $response = $this->update("wit/workitems/{$id}", $updates);
-
-        return $response;
-    }
-
-    public function mapStatusToBranchType($status): string
-    {
-        switch (strtolower($status)) {
-            case "hotfix":
-            case "hot":
-            case "hot fix":
-                return 'hotfix';
-            case "bug":
-            case "issue":
-                return 'bugfix';
-            case "tech debt":
-            case "user story":
-            case "feature":
-            default:
-                return 'feature';
-        }
     }
 }

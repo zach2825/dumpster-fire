@@ -59,7 +59,6 @@ class TaskrRepoInitCommand extends Command
             $gitStuff->setConfig(compact('service'));
         }
 
-
         unset($availableSettings[0]);
 
         if ($this->option('empties') && !$settings['token_type']) {
@@ -86,7 +85,8 @@ class TaskrRepoInitCommand extends Command
             }
         }
 
-        $this->notify("Taskr", "Init all done, run `taskr` to see a list of commands");
+        $this->notify('Taskr', 'Init all done, run `taskr` to see a list of commands');
+
         return 0;
     }
 

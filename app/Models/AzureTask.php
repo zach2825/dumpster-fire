@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Carbon\Carbon;
@@ -6,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Class AzureTask
- * @package App\Models
+ *
  * @property string areapath
  * @property string teamproject
  * @property string iterationpath
@@ -32,7 +33,6 @@ use Illuminate\Database\Eloquent\Model;
  */
 class AzureTask extends Model
 {
-
     protected $fillable = [
         'url',
         'assignedTo',

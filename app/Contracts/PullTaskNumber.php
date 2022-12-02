@@ -1,8 +1,6 @@
 <?php
 
-
 namespace App\Contracts;
-
 
 use App\Models\Tasks;
 use Atlassian\JiraRest\Requests\Issue\Parameters\Comment\AddParameters;
@@ -10,7 +8,8 @@ use Atlassian\JiraRest\Requests\Issue\Parameters\Comment\AddParameters;
 class PullTaskNumber
 {
     public $task_id = null;
-    public $branch  = null;
+
+    public $branch = null;
 
     public function setCommandOptions($task_id = null, $force = false)
     {
@@ -32,7 +31,7 @@ class PullTaskNumber
                 $this->task_id = array_get($matches, '1.0');
 
                 if (!$this->task_id) {
-                    die('Can\'t get task id from the branch name. Try pass in the task number');
+                    exit('Can\'t get task id from the branch name. Try pass in the task number');
                 }
             }
         }
@@ -50,7 +49,7 @@ class PullTaskNumber
         }
 
         $jira = new Jira($this);
-        die($comment_body);
+        exit($comment_body);
         $comment       = new AddParameters();
         $comment->body = $comment_body;
 

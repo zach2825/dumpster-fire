@@ -31,6 +31,7 @@ class AzureStartWork extends Command
      * @param Azure    $azure
      * @param GitStuff $gitStuff
      * @return int
+     *
      * @throws RequestException
      * @throws Throwable
      */
@@ -56,7 +57,7 @@ class AzureStartWork extends Command
             $this->info('Task is not in the ' . config('df.transition.development') . ' column');
         } else {
             $output = sprintf(
-                "Task could not be moved to the \"%s\" column from \"%s\".",
+                'Task could not be moved to the "%s" column from "%s".',
                 config('df.transition.development'),
                 $task->boardColumn
             );

@@ -53,7 +53,7 @@ class ManuallyFormatBranch extends Command
                 $title,
                 function () use ($gitStuff, $branch) {
                     $gitStuff->checkout($branch);
-                    $gitStuff->pull("origin", $branch);
+                    $gitStuff->pull('origin', $branch);
                 }
             );
         }
