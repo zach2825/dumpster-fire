@@ -50,6 +50,39 @@ class GitStuff
 //        $this->task_key     = $task_key;
 //    }
 
+    public static function getOrgService()
+    {
+        return (new self)->getConfig('service');
+    }
+
+    public function getConfig($key = null, $default = null)
+    {
+        if (is_array($key)) {
+            $response = [];
+
+            foreach ($key as $k) {
+                $setting = $this->gitRun(sprintf('git config taskr.%s', $k)) ?: [];
+
+                $response[$k] = Arr::get($setting, '0', $default);
+            }
+
+            return $response;
+        }
+
+        $response = $this->gitRun(sprintf('git config taskr.%s', $key));
+
+        return Arr::get($response, '0', $default);
+    }
+
+    public function gitRun($command)
+    {
+        $lines = null;
+
+        exec($command, $lines);
+
+        return $lines;
+    }
+
     /**
      * @throws Throwable
      */
@@ -174,34 +207,6 @@ class GitStuff
             preg_replace('/-$/', '', Str::limit(Str::slug($subject), 22, '')),
             config('git.branch_append', '')
         );
-    }
-
-    public function getConfig($key = null, $default = null)
-    {
-        if (is_array($key)) {
-            $response = [];
-
-            foreach ($key as $k) {
-                $setting = $this->gitRun(sprintf('git config taskr.%s', $k)) ?: [];
-
-                $response[$k] = Arr::get($setting, '0', $default);
-            }
-
-            return $response;
-        }
-
-        $response = $this->gitRun(sprintf('git config taskr.%s', $key));
-
-        return Arr::get($response, '0', $default);
-    }
-
-    public function gitRun($command)
-    {
-        $lines = null;
-
-        exec($command, $lines);
-
-        return $lines;
     }
 
     public function setConfig(array $settings)

@@ -57,29 +57,17 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(
             TaskService::class,
             concrete: function () {
-                // TODO :: read the repo and get the task service settings and
-                // decide which service is being used
-                $task_service_id = ImportTypesEnums::JIRA;
+                /**
+                 * react the repo settings and decide which task service to use
+                 */
+                $task_service_id = GitStuff::getOrgService();
 
-                switch ($task_service_id) {
-                    case ImportTypesEnums::AHA:
-                        return new AHA(
-                            token: config('aha.api_key'),
-                            company: config('aha.company'),
-                            task_key: config('aha.task_key'),
-                        );
-                    case ImportTypesEnums::AZURE:
-                        return new Azure(
-                            organization: config('df.organization'),
-                            token: config('df.personal_access_token'),
-                            username: config('df.username'),
-                            project: config('df.project'),
-                        );
-                    case ImportTypesEnums::JIRA:
-                        return $this->app->make(JIRA::class);
-                    default:
-                        throw new Exception('Unexpected value');
-                }
+                return match ($task_service_id) {
+                    ImportTypesEnums::AHA->name => $this->app->make(AHA::class),
+                    ImportTypesEnums::AZURE->name => $this->app->make(AZURE::class),
+                    ImportTypesEnums::JIRA->name => $this->app->make(JIRA::class),
+                    default => throw new Exception('Unexpected value'),
+                };
             }
         );
     }
