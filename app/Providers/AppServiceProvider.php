@@ -31,28 +31,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->singleton(PullTaskNumber::class, fn() => new PullTaskNumber());
-
         $this->app->singleton(GitStuff::class, fn($app) => new GitStuff($app[PullTaskNumber::class]));
-
-        $this->app->singleton(
-            Azure::class,
-            fn($app) => new Azure(
-                organization: config('df.organization'),
-                token: config('df.personal_access_token'),
-                username: config('df.username'),
-                project: config('df.project'),
-            )
-        );
-
-        $this->app->singleton(
-            AHA::class,
-            concrete: fn() => new AHA(
-                token: config('aha.api_key'),
-                company: config('aha.company'),
-                task_key: config('aha.task_key'),
-            )
-        );
 
         $this->app->singleton(
             TaskService::class,
