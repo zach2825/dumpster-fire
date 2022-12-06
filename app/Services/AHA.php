@@ -15,17 +15,17 @@ class AHA implements TaskService
     private string $baseUrl;
 
     /**
-     * @param string $token
-     * @param string $company
-     * @param string $username
-     * @param string $task_key
-     * @param string $api_version
+     * @param string      $token
+     * @param string      $company
+     * @param string      $task_key
+     * @param string|null $username
+     * @param string      $api_version
      */
     public function __construct(
         public string $token,
         private string $company,
-        private string $username,
         private string $task_key,
+        private string|null $username = null,
         private string $api_version = 'v1',
     ) {
         $this->baseUrl = "https://{$company}.aha.io/api";

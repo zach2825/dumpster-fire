@@ -1,4 +1,5 @@
 <?php
+/** @noinspection PhpPropertyOnlyWrittenInspection */
 
 namespace App\Services;
 
@@ -11,38 +12,25 @@ use Illuminate\Support\Str;
 
 class Azure implements TaskService
 {
-    private string $token;
-
     private string $baseUrl;
 
-    private string $api_version;
-
-    private string $username;
-
-    private string $email;
-
     /**
-     * Azure constructor.
-     *
-     * @param        $organization
-     * @param        $username
-     * @param        $token
-     * @param null   $project
-     * @param string $api_version
+     * @param             $organization
+     * @param string|null $token
+     * @param string      $api_version
+     * @param string|null $email
+     * @param string|null $username
+     * @param string|null $project
      */
     public function __construct(
         $organization,
-        $username = null,
-        $token = null,
-        $project = null,
-        string $api_version = '5.0'
+        private string|null $token = null,
+        private string $api_version = '5.0',
+        private string|null $email = null,
+        private string|null $username = null,
+        private string|null $project = null,
     ) {
-        $this->username = $username ?? config('df.username');
-        $this->email    = config('df.email');
-        $this->token    = $token ?? config('df.personal_access_token');
-
-        $this->baseUrl     = "https://dev.azure.com/{$organization}/_apis";
-        $this->api_version = $api_version;
+        $this->baseUrl = "https://dev.azure.com/{$organization}/_apis";
     }
 
     public function transition($task_id, $columnName, $status_name)
@@ -52,10 +40,10 @@ class Azure implements TaskService
 
     /**
      * Update the task on the board
-     *
      * @param $id
      * @param $columns
-     * @return bool
+     * @param $op
+     * @return mixed
      */
     public function taskUpdate($id, $columns, $op = 'replace'): mixed
     {
@@ -69,9 +57,7 @@ class Azure implements TaskService
             ];
         }
 
-        $response = $this->update("wit/workitems/{$id}", $updates);
-
-        return $response;
+        return $this->update("wit/workitems/{$id}", $updates);
     }
 
     public function update($path, $data)
@@ -80,8 +66,6 @@ class Azure implements TaskService
         $response = Http::withToken($basic, 'basic')
             ->contentType('application/json-patch+json')
             ->patch($url, $data);
-
-//        $test = $response->body();
 
         return $response->json() ?? [];
     }
@@ -156,20 +140,11 @@ class Azure implements TaskService
 
     public function mapStatusToBranchType($status): string
     {
-        switch (strtolower($status)) {
-            case 'hotfix':
-            case 'hot':
-            case 'hot fix':
-                return 'hotfix';
-            case 'bug':
-            case 'issue':
-                return 'bugfix';
-            case 'tech debt':
-            case 'user story':
-            case 'feature':
-            default:
-                return 'feature';
-        }
+        return match (strtolower($status)) {
+            'hotfix', 'hot', 'hot fix' => 'hotfix',
+            'bug', 'issue' => 'bugfix',
+            default => 'feature',
+        };
     }
 
     /**

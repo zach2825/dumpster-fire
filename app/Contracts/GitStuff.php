@@ -23,6 +23,7 @@ class GitStuff
 
     public $branchPrefix = null;
     public $lastOutput = '';
+    public array $last_responses;
     /**
      * @var PullTaskNumber
      */
@@ -38,16 +39,16 @@ class GitStuff
      * @param PullTaskNumber $taskNumber
      * @param string         $task_key
      */
-    public function __construct(PullTaskNumber $taskNumber, string $task_key = 'AB#')
-    {
-        $this->task = $taskNumber;
-
-        $this->organization = config('github.default_organization');
-        $this->repo         = config('github.default_repo');
-
-        $this->branchPrefix = config('branching.branch_prefix');
-        $this->task_key     = $task_key;
-    }
+//    public function __construct(PullTaskNumber $taskNumber, string $task_key = 'AB#')
+//    {
+//        $this->task = $taskNumber;
+//
+//        $this->organization = config('github.default_organization');
+//        $this->repo         = config('github.default_repo');
+//
+//        $this->branchPrefix = config('branching.branch_prefix');
+//        $this->task_key     = $task_key;
+//    }
 
     /**
      * @throws Throwable
@@ -177,7 +178,19 @@ class GitStuff
 
     public function getConfig($key = null, $default = null)
     {
-        $response = $this->gitRun(sprintf('git config taskr.%s', Str::slug($key)));
+        if (is_array($key)) {
+            $response = [];
+
+            foreach ($key as $k) {
+                $setting = $this->gitRun(sprintf('git config taskr.%s', $k)) ?: [];
+
+                $response[$k] = Arr::get($setting, '0', $default);
+            }
+
+            return $response;
+        }
+
+        $response = $this->gitRun(sprintf('git config taskr.%s', $key));
 
         return Arr::get($response, '0', $default);
     }
@@ -191,15 +204,15 @@ class GitStuff
         return $lines;
     }
 
-    public function setConfig($key, $value = null)
+    public function setConfig(array $settings)
     {
-        if (is_array($key)) {
-            foreach ($key as $key => $value) {
-                /// nothing to do
-            }
+        $last_response = [];
+
+        foreach ($settings as $key => $value) {
+            $last_response[] = $this->gitRun(sprintf('git config taskr.%s %s', $key, $value));
         }
 
-        $this->gitRun(sprintf('git config taskr.%s "%s"', Str::slug($key), $value));
+        $this->last_responses = $last_response;
 
         return $this;
     }
