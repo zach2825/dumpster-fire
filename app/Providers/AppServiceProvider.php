@@ -43,7 +43,7 @@ class AppServiceProvider extends ServiceProvider
 
                 return match ($task_service_id) {
                     ImportTypesEnums::AHA->name => $this->app->make(AHA::class),
-                    ImportTypesEnums::AZURE->name => $this->app->make(AZURE::class),
+                    ImportTypesEnums::AZURE->name => $this->app->make(Azure::class),
                     ImportTypesEnums::JIRA->name => $this->app->make(JIRA::class),
                     default => throw new Exception('Unexpected value'),
                 };
